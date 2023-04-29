@@ -3,15 +3,11 @@ This script contains the views/routes of the website
 
 '''
 
-from flask import Flask, jsonify, request
-from flask_cors import CORS
-import requests
-import json
+from flask import jsonify,request,session
 from api_utils import caller
+from main import app
 
 
-app = Flask(__name__)
-CORS(app)
 
 @app.route("/search", methods=["POST"])
 def search():
@@ -28,9 +24,13 @@ def search():
     '''
 
     finder = request.json["name"]
-    data = caller.fetch_data(finder)
-    print(data)
-    return jsonify(data)
+    function = request.json["func"]
+    data = caller.fetch_data(finder,function)
+    if data["status"]=="bad":
+        return jsonify(data)
+    else:
+        session["data"]=data
+        return jsonify(data)
 
 
 @app.route("/curve_fitting", methods=["POST"])
@@ -47,12 +47,15 @@ def curve_fitting():
             
     '''
 
-    data = request.json["data"]
+    if "data" in session:
+        data=session["data"]
+        print(data)
+        new=data
+
+    else:
+        print("return error block")
     degree = request.json.get("degree", 3)
 
-    equation = caller.get_eq(data,degree)
+    equation = caller.get_eq(new,degree)
 
     return jsonify({"equation": equation})
-
-if __name__ == "__main__":
-    app.run(debug=True)

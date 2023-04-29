@@ -4,16 +4,44 @@
     <meta charset="UTF-8">
     <title>Financial Chart Search</title>
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.9.4/Chart.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@3.3.2/dist/chart.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@2.0.0/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
+    <style>
+      #loader {
+        border: 8px solid #f3f3f3; 
+        border-top: 8px solid #3498db; 
+        border-radius: 50%;
+        width: 50px;
+        height: 50px;
+        animation: spin 2s linear infinite;
+        position: relative;
+        top:100px;
+        left:500px;
+      }
+
+      @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+      }
+
+    </style>
+
 </head>
 <body>
     <h1>Financial Chart Search</h1>
     <div>
-        <label for="name">name:</label>
+        <label for="name">Symbol:</label>
         <input type="text" id="name" name="name">
-        <button onclick="search()">Search</button>
+        <select id="time-series-select">
+          <option value="TIME_SERIES_INTRADAY">TIME_SERIES_INTRADAY</option>
+          <option value="TIME_SERIES_WEEKLY">TIME_SERIES_WEEKLY</option>
+          <option value="TIME_SERIES_MONTHLY">TIME_SERIES_MONTHLY</option>
+        </select>        
     </div>
     <div>
+        <p id="error"></p>
+        <div id="loader"></div>
+
         <canvas id="chart"></canvas>
     </div>
     <div>
@@ -25,65 +53,116 @@
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 
 <script>
-    function search() {
-        const name = $('#name').val();
-        $.ajax({
-            url: '/search',
-            type: 'POST',
-            contentType: 'application/json',
-            data: JSON.stringify({name: name}),
-            success: function(data) {
-                const chartData = {
-                    labels: data.chart_data.map(item => item.date),
-                    datasets: [{
-                        label: data.name,
-                        data: data.chart_data.map(item => item.close)
-                    }]
-                };
-                const chartOptions = {
-                    responsive: true,
-                    title: {
-                        display: true,
-                        text: 'Financial Chart'
-                    },
-                    scales: {
-                        xAxes: [{
-                            type: 'time',
-                            time: {
-                                unit: 'day'
-                            }
-                        }]
-                    }
-                };
-                const chart = new Chart(document.getElementById('chart').getContext('2d'), {
-                    type: 'line',
-                    data: chartData,
-                    options: chartOptions
-                });
-            },
-            error: function(error) {
-                console.error(error);
-            }
-        });
-    }
+function fitCurve() {
 
-    function fitCurve() {
-        const chart = Chart.instances[0];
-        const data = chart.data.datasets[0].data;
-        const degree = $('#degree').val();
-        $.ajax({
-            url: '/curve_fitting',
-            type: 'POST',
-            contentType: 'application/json',
-            data: JSON.stringify({data: data, degree: degree}),
-            success: function(data) {
-                $('#equation').text(data.equation);
-            },
-            error: function(error) {
-                console.error(error);
-            }
-        });
+  $.ajax({
+    url: '/curve_fitting',
+    type: 'POST',
+    contentType: 'application/json',
+    data: JSON.stringify({}),
+    success: function(response) {
+      $('#equation').text(response.equation);
+    },
+    error: function(error) {
+      console.error(error);
     }
+  });
+}
+
+function search() {
+  const name = $('#name').val();
+  const func = $('#time-series-select').val();
+  $.ajax({
+    url: '/search',
+    type: 'POST',
+    contentType: 'application/json',
+    data: JSON.stringify({name: name,func:func}),
+    success: function (data) {
+        $('#error').text("");
+        $("#loader").hide();
+        $("#chart").show();
+        if (data.status=="bad"){
+          $('#error').text(data.message);
+          return;
+        }
+        console.log(data);
+        if (data.chart_data) {
+          const chartData = {
+            labels: data.chart_data.map((item) => item.date),
+            datasets: [
+              {
+                label: data.symbol,
+                data: data.chart_data.map((item) => item.close),
+                backgroundColor: 'rgba(54, 162, 235, 0.5)',
+                borderColor: 'rgba(54, 162, 235, 1)',
+                borderWidth: 1,
+              },
+            ],
+          };
+          const chartOptions = {
+            responsive: true,
+            title: {
+              display: true,
+              text: 'Financial Chart',
+            },
+            scales: {
+              x: {
+                type: 'time',
+                time: {
+                  unit: 'day',
+                },
+              },
+              y: {
+                ticks: {
+                  callback: function (value, index, values) {
+                    return '$' + value;
+                  },
+                },
+              },
+            },
+          };
+          const chart = new Chart(
+            document.getElementById('chart').getContext('2d'),
+            {
+              type: 'line',
+              data: chartData,
+              options: chartOptions,
+            }
+          );
+        }
+      },
+    error: function (error) {
+      $("#loader").hide();
+      $('#error').text("Unknown Error Occured!");
+    },
+  });
+}
+
+
+
+
+$(document).ready(function() {
+    $("#loader").hide();
+    $("#name, #time-series-select").on("change keyup", function() {
+
+        var inputVal = $("#name").val();
+        if (inputVal==""){
+          $("#error").text("");
+
+        }
+        Chart.helpers.each(Chart.instances, function(instance) {
+        instance.destroy();
+        });
+        $("#chart").hide();
+
+        if (inputVal!=""){
+          search();
+          $("#loader").show();
+        }
+    });
+});
+
+
 </script>
 
 </body>
