@@ -48,14 +48,12 @@ def curve_fitting():
     '''
 
     if "data" in session:
-        data=session["data"]
-        print(data)
-        new=data
+        data=session["data"]["chart_data"]
 
     else:
         print("return error block")
     degree = request.json.get("degree", 3)
 
-    equation = caller.get_eq(new,degree)
+    equation = caller.get_eq(data,degree)
 
-    return jsonify({"equation": equation})
+    return jsonify(equation)

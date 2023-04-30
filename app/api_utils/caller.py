@@ -76,16 +76,14 @@ def get_eq(data: list, degree: int) -> str:
         str: A str of equation.
     """
 
-    if not data:
-        return "No data available."
-    
-    if not all(isinstance(d, dict) and 'date' in d and 'close' in d for d in data):
-        return "Invalid data format."
-    
     data_points = ", ".join(f"({item['date']}, {item['close']})" for item in data)
-    query = f"polynomial fit of degree {degree} for {{ {data_points} }}"
+    query = f"polynomial fit of degree {3} for {{ {data_points} }}"
     client = wolframalpha.Client(WOLFRAM_ALPHA_API_KEY)
     result = client.query(query)
-    equation = next(result.results).text
-    return equation
-
+    try:
+        pod = next(result.results)
+        print(result.results)
+        equation = pod.text
+        return {"status":"ok","message":equation}
+    except StopIteration:
+        return {"status":"bad","message":"No results found!"}

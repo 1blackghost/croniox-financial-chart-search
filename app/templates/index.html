@@ -3,167 +3,333 @@
 <head>
     <meta charset="UTF-8">
     <title>Financial Chart Search</title>
+    
+    <!-- Import necessary libraries -->
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@3.3.2/dist/chart.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@2.0.0/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
+    
+    <!-- Add some styles for the loader -->
     <style>
-      #loader {
-        border: 8px solid #f3f3f3; 
-        border-top: 8px solid #3498db; 
-        border-radius: 50%;
-        width: 50px;
-        height: 50px;
-        animation: spin 2s linear infinite;
-        position: relative;
-        top:100px;
-        left:500px;
-      }
+        div {
+          display: flex;
+          flex-direction: row;
+          align-items: center;
+          justify-content: center;
+          text-align: center;
+          margin: 1rem 0;
+        }
 
-      @keyframes spin {
-        0% { transform: rotate(0deg); }
-        100% { transform: rotate(360deg); }
-      }
+        .loader {
+            border: 8px solid #f3f3f3; 
+            border-top: 8px solid #3498db; 
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 2s linear infinite;
+            position: absolute;
+            top: 40%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+        }
+
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        body {
+            background-color: #f7f7f7;
+            font-family: Arial, sans-serif;
+            color: #333;
+        }
+
+        h1 {
+            font-size: 2rem;
+            font-weight: bold;
+            text-align: center;
+            margin: 1rem 0;
+            color: #555;
+        }
+
+        label {
+            font-size: 1.2rem;
+            font-weight: bold;
+            margin-right: 0.5rem;
+            color: #555;
+        }
+
+        input[type="text"],
+        select {
+            font-size: 1.2rem;
+            padding: 0.5rem;
+            margin-right: 1rem;
+            border: none;
+            border-radius: 0.3rem;
+            background-color: #eee;
+            color: #555;
+        }
+
+        select {
+            margin-right: 2rem;
+        }
+
+        #error {
+            font-size: 1.2rem;
+            color: #c00;
+            margin: 1rem 0;
+            text-align: center;
+        }
+
+        #loader{
+            margin: 2rem auto;
+        }
+
+        #chart {
+            width: 100%;
+            max-width: 800px;
+            margin: 2rem auto;
+        }
+
+        #degree {
+            font-size: 1.2rem;
+            padding: 0.5rem;
+            margin-right: 1rem;
+            border: none;
+            border-radius: 0.3rem;
+            background-color: #eee;
+            color: #555;
+            width: 3rem;
+            text-align: center;
+        }
+
+        button {
+            font-size: 1.2rem;
+            padding: 0.5rem 1rem;
+            border: none;
+            border-radius: 0.3rem;
+            background-color: #3498db;
+            color: #fff;
+            cursor: pointer;
+        }
+        #degrees {
+          margin-top: 2rem;
+          position: relative;
+          top:25%;
+          text-align: center;
+          position: absolute;
+          top:85%;
+          left:40%;
+          text-align: center;
+
+
+          
+        }
+
+        #chart {
+            width: 100%;
+            max-width: 800px;
+            margin: 2rem auto 0;
+        }
+
+        #equation{
+            position: relative;
+            left:45%;
+            text-align: center;
+        }
 
     </style>
-
 </head>
+
 <body>
     <h1>Financial Chart Search</h1>
+    
+    <!-- Search bar -->
     <div>
         <label for="name">Symbol:</label>
-        <input type="text" id="name" name="name">
+        <input type="text" id="name" name="name" autocomplete="off">
         <select id="time-series-select">
-          <option value="TIME_SERIES_INTRADAY">TIME_SERIES_INTRADAY</option>
-          <option value="TIME_SERIES_WEEKLY">TIME_SERIES_WEEKLY</option>
-          <option value="TIME_SERIES_MONTHLY">TIME_SERIES_MONTHLY</option>
+            <option value="TIME_SERIES_INTRADAY">TIME_SERIES_INTRADAY</option>
+            <option value="TIME_SERIES_WEEKLY">TIME_SERIES_WEEKLY</option>
+            <option value="TIME_SERIES_MONTHLY">TIME_SERIES_MONTHLY</option>
         </select>        
     </div>
-    <div>
-        <p id="error"></p>
-        <div id="loader"></div>
+    
+    <!-- Chart area -->
+    <p id="error"></p>
 
+    <div>
+        <div id="loader" class="loader"></div>
+        <div id="equation">
+        </div>
         <canvas id="chart"></canvas>
     </div>
-    <div>
+    
+    <!-- Curve fitting area -->
+    <div id="degrees">
         <label for="degree">Degree:</label>
         <input type="number" id="degree" min="1" max="10" value="3">
         <button onclick="fitCurve()">Fit Curve</button>
     </div>
-    <div id="equation"></div>
-<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    
 
-<script>
-function fitCurve() {
+    <!-- JavaScript code -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 
-  $.ajax({
-    url: '/curve_fitting',
-    type: 'POST',
-    contentType: 'application/json',
-    data: JSON.stringify({}),
-    success: function(response) {
-      $('#equation').text(response.equation);
-    },
-    error: function(error) {
-      console.error(error);
-    }
-  });
-}
-
-function search() {
-  const name = $('#name').val();
-  const func = $('#time-series-select').val();
-  $.ajax({
-    url: '/search',
-    type: 'POST',
-    contentType: 'application/json',
-    data: JSON.stringify({name: name,func:func}),
-    success: function (data) {
-        $('#error').text("");
-        $("#loader").hide();
-        $("#chart").show();
-        if (data.status=="bad"){
-          $('#error').text(data.message);
-          return;
-        }
-        console.log(data);
-        if (data.chart_data) {
-          const chartData = {
-            labels: data.chart_data.map((item) => item.date),
-            datasets: [
-              {
-                label: data.symbol,
-                data: data.chart_data.map((item) => item.close),
-                backgroundColor: 'rgba(54, 162, 235, 0.5)',
-                borderColor: 'rgba(54, 162, 235, 1)',
-                borderWidth: 1,
-              },
-            ],
-          };
-          const chartOptions = {
-            responsive: true,
-            title: {
-              display: true,
-              text: 'Financial Chart',
-            },
-            scales: {
-              x: {
-                type: 'time',
-                time: {
-                  unit: 'day',
+    <script>
+        // Function to fit curve
+        function fitCurve() {
+            // Show the loader
+            $("#loader").show();
+            
+            // Clear the previous equation
+            $('#equation').text("");
+            
+            // Send an AJAX request to the server to fit the curve
+            $.ajax({
+                url: '/curve_fitting',
+                type: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify({}),
+                success: function(response) {
+                    // Update the equation with the response from the server
+                    $('#equation').text(response.message);
+                    if (response.message=="No results found!"){
+                      Chart.helpers.each(Chart.instances, function(instance) {
+                        instance.destroy();
+                      });
+                      
+                    }
+                    // Hide the loader
+                    $("#loader").hide();
                 },
-              },
-              y: {
-                ticks: {
-                  callback: function (value, index, values) {
-                    return '$' + value;
+                error: function(error) {
+                    // Log any errors to the console
+                    console.error(error);
+                    
+                    // Hide the loader
+                    $("#loader").hide();
+                }
+            });
+        }
+        /**
+         * Performs a search using the name and function provided by the user.
+         */
+        function search() {
+          const name = $('#name').val();
+          const func = $('#time-series-select').val();
+          $.ajax({
+            url: '/search',
+            type: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify({name: name, func: func}),
+            success: function (data) {
+              $('#error').text("");
+              $("#loader").hide();
+              $("#chart").show();
+              if (data.status == "bad") {
+                $('#error').text(data.message);
+                return;
+              }
+              console.log(data);
+              if (data.chart_data) {
+                const chartData = {
+                  labels: data.chart_data.map((item) => item.date),
+                  datasets: [
+                    {
+                      label: data.symbol,
+                      data: data.chart_data.map((item) => item.close),
+                      backgroundColor: 'rgba(54, 162, 235, 0.5)',
+                      borderColor: 'rgba(54, 162, 235, 1)',
+                      borderWidth: 1,
+                    },
+                  ],
+                };
+                const chartOptions = {
+                  responsive: true,
+                  title: {
+                    display: true,
+                    text: 'Financial Chart',
                   },
-                },
-              },
+                  scales: {
+                    x: {
+                      type: 'time',
+                      time: {
+                        unit: 'day',
+                      },
+                    },
+                    y: {
+                      ticks: {
+                        callback: function (value, index, values) {
+                          return '$' + value;
+                        },
+                      },
+                    },
+                  },
+                };
+                const chart = new Chart(
+                  document.getElementById('chart').getContext('2d'),
+                  {
+                    type: 'line',
+                    data: chartData,
+                    options: chartOptions,
+                  }
+                );
+              }
             },
-          };
-          const chart = new Chart(
-            document.getElementById('chart').getContext('2d'),
-            {
-              type: 'line',
-              data: chartData,
-              options: chartOptions,
+            error: function (error) {
+              $("#loader").hide();
+              $('#error').text("Unknown Error Occurred!");
+            },
+          });
+        }
+
+        $(document).ready(function() {
+          $("#loader").hide();
+          var delay = 500; 
+          var timeoutId;
+          $("#name, #time-series-select").on("change keyup", function() {
+            var inputVal = $("#name").val();
+            if (inputVal == "") {
+              $("#error").text("");
+              $('#equation').text("");
             }
-          );
-        }
-      },
-    error: function (error) {
-      $("#loader").hide();
-      $('#error').text("Unknown Error Occured!");
-    },
-  });
-}
-
-
-
-
-$(document).ready(function() {
-    $("#loader").hide();
-    $("#name, #time-series-select").on("change keyup", function() {
-
-        var inputVal = $("#name").val();
-        if (inputVal==""){
-          $("#error").text("");
-
-        }
-        Chart.helpers.each(Chart.instances, function(instance) {
-        instance.destroy();
+            Chart.helpers.each(Chart.instances, function(instance) {
+              instance.destroy();
+            });
+            $("#chart").hide();
+            if (inputVal != "") {
+              if (timeoutId) {
+                clearTimeout(timeoutId);
+              }
+              timeoutId = setTimeout(search, delay);
+              $("#loader").show();
+            }
+          });
         });
-        $("#chart").hide();
+      //Function used to settimeout to access the search function.
+      //It reduces the simulateous posts in the /search entrypoint
+      function debounce(func, wait, immediate) {
+        var timeout;
+        return function() {
+          var context = this,
+            args = arguments;
+          var later = function() {
+            timeout = null;
+            if (!immediate) func.apply(context, args);
+          };
+          var callNow = immediate && !timeout;
+          clearTimeout(timeout);
+          timeout = setTimeout(later, wait);
+          if (callNow) func.apply(context, args);
+        };
+      }
 
-        if (inputVal!=""){
-          search();
-          $("#loader").show();
-        }
-    });
-});
 
 
-</script>
+
+  </script>
 
 </body>
 </html>
