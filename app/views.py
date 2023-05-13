@@ -25,7 +25,7 @@ def search():
 
     finder = request.json["name"]
     function = request.json["func"]
-    data = caller.fetch_data(finder,function)
+    data = caller.fetch_data(finder)
     if data["status"]=="bad":
         return jsonify(data)
     else:

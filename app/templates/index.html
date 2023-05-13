@@ -225,22 +225,17 @@
             type: 'POST',
             contentType: 'application/json',
             data: JSON.stringify({name: name, func: func}),
-            success: function (data) {
+            success: function(response) {
               $('#error').text("");
               $("#loader").hide();
               $("#chart").show();
-              if (data.status == "bad") {
-                $('#error').text(data.message);
-                return;
-              }
-              console.log(data);
-              if (data.chart_data) {
+              if (response.status === "ok") {
                 const chartData = {
-                  labels: data.chart_data.map((item) => item.date),
+                  labels: [response.chart_data.date],
                   datasets: [
                     {
-                      label: data.symbol,
-                      data: data.chart_data.map((item) => item.close),
+                      label: response.symbol,
+                      data: [response.chart_data.bar_data[0].c],
                       backgroundColor: 'rgba(54, 162, 235, 0.5)',
                       borderColor: 'rgba(54, 162, 235, 1)',
                       borderWidth: 1,
@@ -277,8 +272,11 @@
                     options: chartOptions,
                   }
                 );
+              } else {
+                $('#error').text("No results found!");
               }
             },
+
             error: function (error) {
               $("#loader").hide();
               $('#error').text("Unknown Error Occurred!");
