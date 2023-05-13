@@ -151,8 +151,6 @@
         <input type="text" id="name" name="name" autocomplete="off">
         <select id="time-series-select">
             <option value="TIME_SERIES_INTRADAY">TIME_SERIES_INTRADAY</option>
-            <option value="TIME_SERIES_WEEKLY">TIME_SERIES_WEEKLY</option>
-            <option value="TIME_SERIES_MONTHLY">TIME_SERIES_MONTHLY</option>
         </select>        
     </div>
     
@@ -182,24 +180,26 @@
         function fitCurve() {
             // Show the loader
             $("#loader").show();
-            
+
             // Clear the previous equation
             $('#equation').text("");
-            
+
+            // Get the degree value from the input field
+            var degree = $('#degree').val();
+
             // Send an AJAX request to the server to fit the curve
             $.ajax({
                 url: '/curve_fitting',
                 type: 'POST',
                 contentType: 'application/json',
-                data: JSON.stringify({}),
+                data: JSON.stringify({ degree: degree }), // Pass the degree value in the JSON data
                 success: function(response) {
                     // Update the equation with the response from the server
                     $('#equation').text(response.message);
-                    if (response.message=="No results found!"){
-                      Chart.helpers.each(Chart.instances, function(instance) {
-                        instance.destroy();
-                      });
-                      
+                    if (response.message == "No results found!") {
+                        Chart.helpers.each(Chart.instances, function(instance) {
+                            instance.destroy();
+                        });
                     }
                     // Hide the loader
                     $("#loader").hide();
@@ -207,12 +207,13 @@
                 error: function(error) {
                     // Log any errors to the console
                     console.error(error);
-                    
+
                     // Hide the loader
                     $("#loader").hide();
                 }
             });
         }
+
         /**
          * Performs a search using the name and function provided by the user.
          */

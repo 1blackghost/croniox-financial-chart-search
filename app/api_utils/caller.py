@@ -7,11 +7,17 @@ This script is used to call wolframalpha and aplhavantage apis
 import config
 import wolframalpha
 import requests
+import datetime
+import yfinance as yf
+import numpy as np
+
+
 
 
 API_KEY = config.ALPHA_VANTAGE_KEY
 BASE_URL = "https://www.alphavantage.co/query"
-WOLFRAM_ALPHA_API_KEY = config.WOLFRAM_ALPHA_KEY
+
+
 
 
 
@@ -64,26 +70,29 @@ def fetch_data(symbol: str,function:str) -> dict:
     return j
 
 
-def get_eq(data: list, degree: int) -> str:
+def get_eq(data: list, degree: int) -> dict:
     """
-    Fetches result equation for degree for the specified data points
+    Fetches the result equation for the specified degree polynomial fit using Alpha Vantage API data.
 
     Args:
         data (list): List of dictionaries containing 'date' and 'close' keys.
-        degree (int): degree of fit
+        degree (int): Degree of fit.
 
     Returns:
-        str: A str of equation.
+        dict: A dictionary containing the status and the equation message.
     """
+    dates = [datetime.datetime.strptime(item['date'], '%Y-%m-%d %H:%M:%S').timestamp() for item in data]
+    prices = [item['close'] for item in data]
 
-    data_points = ", ".join(f"({item['date']}, {item['close']})" for item in data)
-    query = f"polynomial fit of degree {3} for {{ {data_points} }}"
-    client = wolframalpha.Client(WOLFRAM_ALPHA_API_KEY)
-    result = client.query(query)
     try:
-        pod = next(result.results)
-        print(result.results)
-        equation = pod.text
-        return {"status":"ok","message":equation}
-    except StopIteration:
-        return {"status":"bad","message":"No results found!"}
+        if len(dates) < degree + 1:
+            return {"status": "bad", "message": "Insufficient data points for the specified degree."}
+
+        coefficients = np.polyfit(dates, prices, degree)
+        equation = np.poly1d(coefficients)
+
+        return {"status": "ok", "message": str(equation)}
+    except Exception as e:
+        return {"status": "bad", "message": f"Error fitting curve: {str(e)}"}
+
+

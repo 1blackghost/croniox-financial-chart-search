@@ -52,8 +52,8 @@ def curve_fitting():
 
     else:
         print("return error block")
-    degree = request.json.get("degree", 3)
+    degree = request.json.get("degree")
 
-    equation = caller.get_eq(data,degree)
+    equation = caller.get_eq(data,int(degree))
 
     return jsonify(equation)
