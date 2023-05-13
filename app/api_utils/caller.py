@@ -10,6 +10,7 @@ import datetime
 from polygon import RESTClient
 from datetime import date
 import numpy as np
+from datetime import date, timedelta
 
 
 
@@ -19,12 +20,6 @@ BASE_URL = "https://www.alphavantage.co/query"
 
 api_key=config.POLYGON_IO
 
-import requests
-from datetime import date
-
-from datetime import date, timedelta
-
-from datetime import date, timedelta
 def fetch_data(ticker: str):
     """
     Fetches data points for the previous day using the Polygon API.
